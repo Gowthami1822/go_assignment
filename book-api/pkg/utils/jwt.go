@@ -1,23 +1,37 @@
 package utils
 
 import (
-	"time"
 	"github.com/golang-jwt/jwt/v5"
+	"time"
 )
 
-var jwtKey = []byte("secret123") // Use env var in real apps
+var jwtKey = []byte("secret_key") // Use env var in production
 
-func GenerateToken(username string) (string, error) {
-	claims := jwt.MapClaims{
-		"username": username,
-		"exp":      time.Now().Add(time.Hour * 1).Unix(),
+type Claims struct {
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+func GenerateToken(username, role string) (string, error) {
+	claims := &Claims{
+		Username: username,
+		Role:     role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtKey)
 }
 
-func ValidateToken(tokenStr string) (*jwt.Token, error) {
-	return jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+func ValidateToken(tokenStr string) (*Claims, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtKey, nil
 	})
+	if err != nil || !token.Valid {
+		return nil, err
+	}
+	return claims, nil
 }

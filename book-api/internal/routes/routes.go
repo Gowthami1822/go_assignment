@@ -1,21 +1,24 @@
 package routes
 
 import (
-	"book-api/controllers"
-	"book-api/middleware"
+	"book-api/internal/book"
+	"book-api/internal/jobs"
+	"book-api/internal/user"
+	"book-api/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(r *gin.Engine) {
-	r.POST("/login", controllers.Login)
+	r.POST("/login", user.Login)
+	r.POST("/jobs", jobs.SubmitJob) // public job submission
 
 	bookRoutes := r.Group("/books")
-	bookRoutes.Use(middleware.AuthMiddleware())
+	bookRoutes.Use(middleware.AuthMiddleware("admin", "user"))
 	{
-		bookRoutes.GET("", controllers.GetBooks)
-		bookRoutes.GET("/:id", controllers.GetBook)
-		bookRoutes.POST("", controllers.AddBook)
-		bookRoutes.PUT("/:id", controllers.UpdateBook)
-		bookRoutes.DELETE("/:id", controllers.DeleteBook)
+		bookRoutes.GET("", book.GetBooks)
+		bookRoutes.GET(":id", book.GetBook)
+		bookRoutes.POST("", book.AddBook)
+		bookRoutes.PUT(":id", book.UpdateBook)
+		bookRoutes.DELETE(":id", book.DeleteBook)
 	}
 }

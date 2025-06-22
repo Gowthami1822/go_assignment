@@ -1,7 +1,7 @@
-package models
+package book
 
 type Book struct {
-	ID     string `json:"id"`
+	ID     uint   `gorm:"primaryKey" json:"id"`
 	Title  string `json:"title"`
 	Author string `json:"author"`
 }

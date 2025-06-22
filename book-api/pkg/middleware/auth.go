@@ -1,30 +1,45 @@
 package middleware
 
 import (
+	"book-api/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
-	"book-api/utils"
-
-	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
-		if !strings.HasPrefix(auth, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid token"})
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing token"})
 			c.Abort()
 			return
 		}
 
-		tokenStr := strings.TrimPrefix(auth, "Bearer ")
-		token, err := utils.ValidateToken(tokenStr)
-		if err != nil || !token.Valid {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := utils.ValidateToken(token)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
 
+		// Role check
+		allowed := false
+		for _, role := range allowedRoles {
+			if claims.Role == role {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			c.Abort()
+			return
+		}
+
+		// Store user info in context
+		c.Set("username", claims.Username)
 		c.Next()
 	}
 }
